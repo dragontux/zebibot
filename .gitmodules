@@ -1,0 +1,3 @@
+[submodule "gojira"]
+	path = gojira
+	url = git@github.com:dragontux/gojira.git
