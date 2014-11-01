@@ -6,7 +6,7 @@ using namespace std;
 using namespace bot;
 
 // shamelessly stolen from stackoverflow
-vector<string> &split( const string &s, char delim, vector<string> &elems ){
+vector<string> &bot::split( const string &s, char delim, vector<string> &elems ){
 	stringstream ss(s);
 	string item;
 
@@ -17,7 +17,7 @@ vector<string> &split( const string &s, char delim, vector<string> &elems ){
 	return elems;
 }
 
-vector<string> split( const string &s, char delim ){
+vector<string> bot::split( const string &s, char delim ){
 	vector<string> elems;
 	split( s, delim, elems );
 	return elems;
@@ -40,7 +40,11 @@ IrcMessage::IrcMessage( string raw ){
 				if ( elem[i][0] == ':' ){
 					if ( i == 0 ){
 						// TODO: host parsing
-						host = elem[0];
+						vector<string> tmp = split( elem[0].substr( 1 ), '!' );
+						if ( tmp.size( ) == 2 ){
+							nick = tmp[0];
+							host = tmp[1];
+						}
 
 					} else {
 						elem[i] = elem[i].substr( 1 );
@@ -54,6 +58,7 @@ IrcMessage::IrcMessage( string raw ){
 			// if no host was specified, the action is the first slice
 			if ( host.empty( )){
 				action = elem[0];
+				
 
 			// otherwise it's the second
 			} else {

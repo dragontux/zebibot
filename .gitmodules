@@ -1,3 +1,6 @@
 [submodule "gojira"]
 	path = gojira
 	url = git@github.com:dragontux/gojira.git
+[submodule "linenoise"]
+	path = linenoise
+	url = https://github.com/dragontux/linenoise.git
