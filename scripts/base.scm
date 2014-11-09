@@ -1,3 +1,4 @@
+;; Base library
 (define-syntax define
   (syntax-rules ()
     ((_ sym def)
@@ -20,6 +21,11 @@
 	((_ expr)
 	 expr)
 	((_) #f)))
+
+(define-syntax ::
+  (syntax-rules ()
+    ((_ ns var)
+     (extern 'ns 'var))))
 
 (define make-func
   (lambda (x)
@@ -76,6 +82,10 @@
   (lambda (x)
 	(car (car x))))
 
+(define cadr
+  (lambda (x)
+    (car (cdr x))))
+
 (define caaar
   (lambda (x)
 	(car (caar x))))
@@ -122,9 +132,14 @@
       0
       (seq (length (cdr ls))))))
 
-(define display
+(define reply
   (lambda (x)
-    x))
+    (send channel x)))
+
+(define display reply)
+(define print   reply)
+(define return  reply)
+
 ; see http://srfi.schemers.org/srfi-1/srfi-1.html#TheProcedures
 
 (define-syntax iota
@@ -209,4 +224,166 @@
     (nextint random::nextint)
     (choice  random::choice)))
 
-(define list-ref (lambda (xs n) (if (not (null? xs)) (if (eq? n 0) (car xs) (list-ref (cdr xs) (- n 1))) #f)))
+(define list-ref
+  (lambda (xs n)
+    (if (not (null? xs))
+      (if (eq? n 0) (car xs)
+        (list-ref (cdr xs) (- n 1)))
+      #f)))
+
+;; Math stuff
+; Recursive factorial function
+(define fact
+  (lambda (x)
+	(if (> x 0)
+	  (* x (fact (- x 1)))
+	  1)))
+
+; Sequence function
+(define seq
+  (lambda (x)
+	(+ x 1)))
+
+; Calculate the sum of a function with inputs from 1 to n.
+(define sum
+  (lambda (n f)
+    (if (>= n 1)
+      (+ (f n)
+         (sum (- n 1) f))
+      0)))
+
+; Calculate the sum of a function with inputs from k to n.
+(define sigma
+  (lambda (n k f)
+    (if (>= n k)
+      (+ (f n)
+         (sigma (- n 1) k f))
+      0)))
+(define ∑ sigma)
+
+(define for-loop
+  (lambda (xs sym body)
+
+    (define iter
+      (lambda (cur_xs)
+        (if (not (null? cur_xs))
+          ((lambda ()
+            (intern-set sym (car cur_xs))
+            (body)
+            (iter (cdr cur_xs))))
+          '())))
+
+    (iter xs)))
+
+; repeatedly perform a function for "times", using recursion
+(define-syntax for
+  (syntax-rules (in)
+    ((_ var in xs body)
+     (for-loop xs 'var body))))
+
+; repeatedly perform a function for "times", using iteration
+(define for-iter
+  (lambda (times f)
+	(define iter
+	  (lambda (count)
+		(if (<= count times)
+		  ;(begin
+          ((lambda ()
+			 (f count)
+			 (iter (seq count))
+             ))
+		  count)))
+	(iter 1)))
+
+; Square a number
+(define square
+  (lambda (x)
+    (* x x)))
+
+(define even?
+  (lambda (n)
+    (eq? (modulo n 2) 0)))
+
+(define odd?
+  (lambda (n)
+    (not (even? n))))
+
+(define-syntax range
+  (syntax-rules (to by :)
+    ((_ begin to end by step)
+     (iota end begin step))
+    ((_ begin to end)
+     (iota end begin))
+    ((_ end) (iota end))))
+
+(define eightball::answers
+  '[ "No. Pleb."
+     "Absolutely not."
+     "No. Hmm..."
+     "there is a possibility."
+     "The future is cloudy; I am unsure."
+     "Yes, if you give it your all."
+     "Absolutely, yes."
+   ])
+
+(define eightball
+  (function( question ){
+    return (random::choice eightball::answers)
+  }))
+
+(define json-obj?
+  (lambda (obj)
+    (eq? (car obj) 'object)))
+
+(define json-array?
+  (lambda (obj)
+    (eq? (car obj) 'array)))
+
+; JSON manipulation stuff
+(define json-object-get
+  (lambda (field obj)
+    (if (eq? (car obj) 'object)
+      (assq field (cadr obj))
+      #f)))
+
+(define json-array-get
+  (lambda (index obj)
+    (if (eq? (car obj) 'array)
+      (list-ref (cadr obj) index)
+      #f)))
+
+(define make-search
+  (lambda (x)
+    (lambda (y)
+      (lambda (keyword)
+        (x (string-append y keyword))))))
+
+(define init-ddg
+  (lambda ()
+    (set! ddg-json
+      ((make-search (:: dev json-url)) "http://api.duckduckgo.com/?format=json&no_html=1&no_redirect=1&skip_disambig=1&q="))))
+      ;((make-search (:: dev json-url)) "http://api.duckduckgo.com/?format=json&no_html=1&no_redirect=1&q="))))
+
+(define ddg-search
+  (lambda (x)
+    (define res (ddg-json x))
+
+    (reply (ddg::get-link res))
+    (reply (ddg::get-abstract res))))
+
+(define ddg::get-link
+  (lambda (obj)
+    (define results (ddg::get-results obj))
+    (if results
+      (json-object-get 'FirstURL results)
+      (json-object-get 'AbstractURL obj))))
+
+(define ddg::get-abstract
+  (lambda (obj)
+    (json-object-get 'Abstract obj)))
+
+(define ddg::get-results
+  (lambda(obj)
+    (json-array-get 0 (json-object-get 'Results obj))))
+
+(define ddg ddg-search)

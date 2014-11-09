@@ -5,7 +5,10 @@
 #include <fstream>
 #include <vector>
 #include <thread>
+#include <map>
 #include <gojira/runtime/runtime.h>
+
+// TODO: split this into seperate headers sometime
 
 namespace bot {
 
@@ -48,7 +51,30 @@ class Connection {
 		bool connected;
 };
 
-void interface_loop( Bot *dabot );
+class LispNamespace {
+	public:
+		 LispNamespace( );
+		 LispNamespace( bool allow_read, bool allow_write );
+		~LispNamespace( );
+
+		bool canAccess( std::string nick );
+		bool canWrite( std::string nick );
+
+		bool addAllowedNick( std::string nick );
+		bool addWriteNick( std::string nick );
+		bool rmAllowedNick( std::string nick );
+		bool rmWriteNick( std::string nick );
+		bool addVar( std::string name, token_t *tree );
+		token_t *getVar( std::string name );
+		token_t *runCode( std::string code );
+
+		std::vector<std::string> nicks_allowed;
+		std::vector<std::string> nicks_writable;
+		bool readable, writable;
+		st_frame_t *frame;
+
+	private:
+};
 
 class Bot {
 	public:
@@ -56,18 +82,24 @@ class Bot {
 		~Bot( );
 		void mainLoop( );
 		void joinChan( std::string channel );
+		LispNamespace *getNamespace( std::string name );
 
 		Connection *server;
 
+		std::map<std::string, LispNamespace *> namespaces;
 		std::vector<std::string> channels;
 		st_frame_t *lisp_frame;
 
 	private:
+		void loadScripts( std::string scriptdir, std::string nspace );
+
 		std::ofstream logfile;
 		std::string logname;
 		std::thread iface_thread;
-		void loadScripts( std::string scriptdir );
 };
+
+void interface_loop( Bot *dabot );
+void bot_error_printer( stack_frame_t *frame, char *fmt, ... );
 
 std::string privmsg( std::string recip, std::string data ); 
 std::string nickmsg( std::string nick );

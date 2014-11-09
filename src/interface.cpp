@@ -4,6 +4,7 @@
 using namespace std;
 using namespace bot; 
 
+// TODO: split the big "if" statement into individual functions
 void bot::interface_loop( Bot *dabot ){
 	while ( true ){
 		string in( linenoise( "zebibot> " ));
@@ -15,6 +16,7 @@ void bot::interface_loop( Bot *dabot ){
 			if ( !args.empty( )){
 				if ( args[0] == "help" ){
 					cout << "There is no god." << endl;
+
 				} else if ( args[0] == "join"){
 					if ( args.size( ) >= 2 ){
 						dabot->server->sendLine( joinmsg( args[1] ));
@@ -44,6 +46,104 @@ void bot::interface_loop( Bot *dabot ){
 					} else {
 						cout << "Usage: say [channel] [message]" << endl;
 					}
+
+                } else if ( args[0] == "add_read" ){
+                    if ( args.size( ) == 3 ){
+                        try {
+                            if ( dabot->namespaces.at( args[1] )){
+                                dabot->namespaces[args[1]]->addAllowedNick( args[2] );
+                            }
+
+                        } catch ( const out_of_range &oor ){
+                            cerr << "Have bad namespace " << args[1] << endl;
+                        }
+
+                    } else {
+						cout << "Usage: add_read [namespace] [nick]" << endl;
+                    }
+
+                } else if ( args[0] == "add_write" ){
+                    if ( args.size( ) == 3 ){
+                        try {
+                            if ( dabot->namespaces.at( args[1] )){
+                                dabot->namespaces[args[1]]->addWriteNick( args[2] );
+                            }
+
+                        } catch ( const out_of_range &oor ){
+                            cerr << "Have bad namespace " << args[1] << endl;
+                        }
+
+                    } else {
+						cout << "Usage: add_write [namespace] [nick]" << endl;
+                    }
+
+                } else if ( args[0] == "rm_read" ){
+                    if ( args.size( ) == 3 ){
+                        try {
+                            if ( dabot->namespaces.at( args[1] )){
+                                dabot->namespaces[args[1]]->rmAllowedNick( args[2] );
+                            }
+
+                        } catch ( const out_of_range &oor ){
+                            cerr << "Have bad namespace " << args[1] << endl;
+                        }
+
+                    } else {
+						cout << "Usage: rm_read [namespace] [nick]" << endl;
+                    }
+
+                } else if ( args[0] == "rm_write" ){
+                    if ( args.size( ) == 3 ){
+                        try {
+                            if ( dabot->namespaces.at( args[1] )){
+                                dabot->namespaces[args[1]]->rmWriteNick( args[2] );
+                            }
+
+                        } catch ( const out_of_range &oor ){
+                            cerr << "Have bad namespace " << args[1] << endl;
+                        }
+
+                    } else {
+						cout << "Usage: rm_write [namespace] [nick]" << endl;
+                    }
+                } else if ( args[0] == "namespaces" ){
+                    map<string, LispNamespace *>::iterator iter;
+
+                    for ( iter = dabot->namespaces.begin( ); iter != dabot->namespaces.end(); iter++ ){
+                        cout << iter->first << endl;
+                        if ( dabot->namespaces[iter->first]->readable ){
+                            cout << "  [globally readable]" << endl;
+
+                        } else {
+                            cout << "  read:  ";
+                            for ( unsigned i = 0;
+                                i < dabot->namespaces[iter->first]->nicks_allowed.size( );
+                                i++ )
+                            {
+                                cout << dabot->namespaces[iter->first]->nicks_allowed[i]
+                                     << ", ";
+                            }
+
+                            cout << endl;
+                        }
+
+                        if ( dabot->namespaces[iter->first]->writable ){
+                            cout << "  [globally writable]" << endl;
+
+                        } else {
+                            cout << "  write: ";
+                            for ( unsigned i = 0;
+                                i < dabot->namespaces[iter->first]->nicks_writable.size( );
+                                i++ )
+                            {
+                                cout << dabot->namespaces[iter->first]->nicks_writable[i]
+                                     << ", ";
+                            }
+
+                            cout << endl;
+                        }
+                        
+                    }
 
 				} else {
 					cout << "Undefined command" << endl;

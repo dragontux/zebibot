@@ -62,7 +62,17 @@ string Connection::getLine( ){
 
 int Connection::sendLine( string line ){
 	int len;
-	len = send( sock, line.c_str( ), line.length( ), 0 );
+	unsigned to_send;
+
+	if ( line.length( ) >= 510 ){
+		line = line.substr( 0, 510 ) + "\r\n";
+		to_send = 512;
+
+	} else {
+		to_send = line.length( );
+	}
+
+	len = send( sock, line.c_str( ), to_send, 0 );
 
 	return len;
 }
