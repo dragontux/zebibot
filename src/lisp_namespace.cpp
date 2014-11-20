@@ -106,8 +106,15 @@ token_t *LispNamespace::getVar( std::string name ){
 token_t *LispNamespace::runCode( std::string code ){
 	token_t *ret = NULL;
 	token_t *chancode;
+	token_t *semicol_expand = strip_token( lexerize( ")(" ), TYPE_NULL );
 
-	chancode = remove_punc_tokens( parse_tokens( lexerize( code.c_str( ))));
+	//chancode = remove_punc_tokens( parse_tokens( lexerize( code.c_str( ))));
+	//chancode = remove_punc_tokens( parse_tokens( replace_type( lexerize( code.c_str( )), lexerize( ")(" ), TYPE_SEMICOLON )));
+	chancode = replace_type( lexerize( code.c_str( )), semicol_expand, TYPE_SEMICOLON );
+	chancode = strip_token( chancode, TYPE_COMMA );
+	chancode = remove_punc_tokens( parse_tokens( chancode ));
+	free_tokens( semicol_expand );
+
 	if ( chancode ){
 		frame->ptr = chancode;
 		//eval_loop( frame, chancode );

@@ -33,7 +33,8 @@ void bot::bot_error_printer( stack_frame_t *frame, char *fmt, ... ){
 	printf( "[%s] got here\n", __func__ );
 	*/
 	vsnprintf( foo, 512, fmt, args );
-	channel = (string)((char *)mainbot->namespaces["bot"]->getVar( "channel" )->data);
+	//channel = (string)((char *)mainbot->namespaces["bot"]->getVar( "channel" )->data);
+	channel = "#sexpbot-debug";
 	mainbot->server->sendLine( privmsg( channel, (string)foo ));
 
 	delete foo;
@@ -103,6 +104,27 @@ void Bot::loadScripts( std::string scriptdir, std::string nspace ){
 	}
 }
 
+bool Bot::shouldIgnore( IrcMessage *msg ){
+	bool ret = false;
+	unsigned i;
+
+	for ( i = 0; i < ignore.nicks.size( ); i++ ){
+		if ( msg->nick == ignore.nicks[i] ){
+			ret = true;
+			break;
+		}
+	}
+
+	for ( i = 0; !ret && i < ignore.hosts.size( ); i++ ){
+		if ( msg->host == ignore.nicks[i] ){
+			ret = true;
+			break;
+		}
+	}
+
+	return ret;
+}
+
 void Bot::mainLoop( ){
 	bool running = true;
 	token_t *code = NULL;
@@ -117,7 +139,11 @@ void Bot::mainLoop( ){
 
 		} else if ( msg.action == "PRIVMSG" ){
 			// Handle a possible command to the bot
-			if ( msg.args[msg.data_start][0] == ':' ){
+
+			if ( shouldIgnore( &msg )){
+				logfile << "Ignored a message." << endl;
+
+			} else if ( msg.args[msg.data_start][0] == ',' ){
 				logfile << "Got command " << msg.args[msg.data_start] << endl;
 
 				string buf;
@@ -126,36 +152,58 @@ void Bot::mainLoop( ){
 					buf = buf + msg.args[i] + " ";
 				}
 
-				buf = buf.substr( 1 );
-				buf = "(" + buf + ")";
+				if ( buf.find( ".kme" ) == string::npos &&
+				     buf.find( "cumbot" ) == string::npos ){
 
-				namespaces["global"]->runCode( "(intern-set 'channel \"" + msg.channel + "\")" );
-				namespaces["bot"   ]->runCode( "(intern-set 'channel \"" + msg.channel + "\")" );
+					buf = buf.substr( 1 );
+					buf = "(" + buf + ")";
 
-				namespaces["global"]->runCode( "(intern-set 'nick \"" + msg.nick + "\")" );
-				namespaces["bot"   ]->runCode( "(intern-set 'nick \"" + msg.nick + "\")" );
+					namespaces["global"]->runCode( "(intern-set 'channel \"" + msg.channel + "\")" );
+					namespaces["bot"   ]->runCode( "(intern-set 'channel \"" + msg.channel + "\")" );
 
-				namespaces["global"]->runCode( buf );
+					namespaces["global"]->runCode( "(intern-set 'nick \"" + msg.nick + "\")" );
+					namespaces["bot"   ]->runCode( "(intern-set 'nick \"" + msg.nick + "\")" );
 
-				if ( lisp_frame->end ){
-					string tknstr = tokenToString( lisp_frame->end );
+					namespaces["global"]->runCode( buf );
 
-					if ( !tknstr.empty( )){
-						server->sendLine( privmsg( msg.channel, tknstr ));
+					if ( lisp_frame->end ){
+						string tknstr = tokenToString( lisp_frame->end );
+
+						if ( !tknstr.empty( )){
+							server->sendLine( privmsg( msg.channel, tknstr ));
+						}
 					}
 				}
 
 			// some channels require bots to respond to this command, good practice to do so anyways
 			} else if ( msg.args[msg.data_start].substr(0,5) == ".bots" ){
-				string botmsg = (string)"Reporting in! [\x03" + "4C/C++/Scheme" + "\x0f]";
+				string botmsg = (string)"Reporting in! [\x03" + "4Scheme" + "\x0f] try ,help";
 				server->sendLine( privmsg( msg.channel, botmsg ));
 
 			// rizon requires ctcp VERSION response
 			} else if ( msg.args[msg.data_start].substr(0,9) == "\001VERSION\001" ){
-				server->sendLine( privmsg( msg.nick, "\001VERSION Zebibot IRC framework 0.1\001" ));
-			}
+				server->sendLine( notice( msg.nick, "\001VERSION SExpbot:v0.1:Windows 8.1\001" ));
 
-			// otherwise just ignore the message, probably wasn't important anyways
+			// otherwise run through hooks for the message
+			} else {
+				string buf;
+				unsigned i;
+				for ( i = msg.data_start; i < msg.args.size( ); i++ ){
+					buf = buf + msg.args[i] + " ";
+				}
+
+				if ( buf.find( "\"" ) == string::npos ){ // TODO: properly handle/escape quotes
+					namespaces["global"]->runCode( "(intern-set 'channel \"" + msg.channel + "\")" );
+					namespaces["bot"   ]->runCode( "(intern-set 'channel \"" + msg.channel + "\")" );
+
+					namespaces["global"]->runCode( "(intern-set 'nick \"" + msg.nick + "\")" );
+					namespaces["bot"   ]->runCode( "(intern-set 'nick \"" + msg.nick + "\")" );
+
+					buf.erase( buf.end() - 3, buf.end() );
+
+					namespaces["global"]->runCode( "(for hook in hooks::privmsg (func(){ hook \"" + buf + "\" }))" );
+				}
+			}
 		}
 
 		logfile << msg.msg << endl;
@@ -367,7 +415,8 @@ string tokenToString( token_t *token ){
 			return ret;
 
 		} else if ( token->type == TYPE_CHAR ){
-			return "#\\" + std::to_string( (char)token->smalldata );
+			char thing[2] = { (char)token->smalldata, 0 };
+			return string( thing );
 
 		} else if ( token->type == TYPE_QUOTED_TOKEN ){
 			return "'" + tokenToString( token->down );

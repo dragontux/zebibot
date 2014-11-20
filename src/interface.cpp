@@ -145,6 +145,29 @@ void bot::interface_loop( Bot *dabot ){
                         
                     }
 
+                } else if ( args[0] == "ignore_nick" ){
+                    if ( args.size( ) == 2 ){
+                        dabot->ignore.nicks.push_back( args[1] );
+
+                    } else {
+						cout << "Usage: ignore_nick [nick]" << endl;
+                    }
+
+                } else if ( args[0] == "unignore_nick" ){
+                    size_t i;
+
+                    if ( args.size( ) == 2 ){
+                        for ( i = 0; i < dabot->ignore.nicks.size( ); i++ ){
+                            if ( dabot->ignore.nicks[i] == args[1] ){
+                                dabot->ignore.nicks[i].erase( i );
+                                break;
+                            }
+                        }
+
+                    } else {
+						cout << "Usage: unignore_nick [nick]" << endl;
+                    }
+
 				} else {
 					cout << "Undefined command" << endl;
 				}

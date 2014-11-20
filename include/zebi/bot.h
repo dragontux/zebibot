@@ -83,12 +83,18 @@ class Bot {
 		void mainLoop( );
 		void joinChan( std::string channel );
 		LispNamespace *getNamespace( std::string name );
+		bool shouldIgnore( IrcMessage *msg );
 
 		Connection *server;
 
 		std::map<std::string, LispNamespace *> namespaces;
 		std::vector<std::string> channels;
 		st_frame_t *lisp_frame;
+
+		struct {
+			std::vector<std::string> nicks;
+			std::vector<std::string> hosts;
+		} ignore;
 
 	private:
 		void loadScripts( std::string scriptdir, std::string nspace );
@@ -107,6 +113,7 @@ std::string usermsg( std::string nick );
 std::string pingpong( IrcMessage msg );
 std::string joinmsg( std::string chan );
 std::string partmsg( std::string chan );
+std::string notice( std::string recip, std::string data );
 
 std::vector<std::string> &split( const std::string &s, char delim, std::vector<std::string> &elems );
 std::vector<std::string>  split( const std::string &s, char delim );

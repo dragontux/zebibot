@@ -64,9 +64,9 @@ int Connection::sendLine( string line ){
 	int len;
 	unsigned to_send;
 
-	if ( line.length( ) >= 510 ){
-		line = line.substr( 0, 510 ) + "\r\n";
-		to_send = 512;
+	if ( line.length( ) > 509 ){
+		line = line.substr( 0, 509 ) + "\r\n";
+		to_send = 511;
 
 	} else {
 		to_send = line.length( );

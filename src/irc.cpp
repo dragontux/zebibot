@@ -100,6 +100,10 @@ string bot::partmsg( string chan ){
 	return "PART " + chan + "\r\n";
 }
 
+string bot::notice( string recip, string data ){
+	return "NOTICE " + recip + " :" + data + "\r\n";
+}
+
 string bot::pingpong( IrcMessage msg ){
 	return "PONG :" + msg.args[msg.data_start];
 }

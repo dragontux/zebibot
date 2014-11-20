@@ -36,11 +36,20 @@ static size_t write_memblock( void *contents, size_t size, size_t nmemb, void *u
 char *get_url( const char *url ){
 	CURL *curl_handle;
 	CURLcode res;
+	char *thing;
+	unsigned i;
 
 	memblock_t block;
 
 	block.mem  = malloc( 1 );
 	block.size = 0;
+
+	thing = strdup( url );
+	for ( i = 0; thing[i]; i++ ){
+		if ( thing[i] == ' ' )
+			// XXX: Preferably this should be replace with the proper escape, %20
+			thing[i] = '+';
+	}
 
 	curl_handle = curl_easy_init( );
 	curl_easy_setopt( curl_handle, CURLOPT_URL,           url );
@@ -206,7 +215,7 @@ token_t *json_to_token( json_t *data ){
 
 			case JSON_REAL:
 				ret->type = TYPE_NUMBER;
-				ret->smalldata = 0;
+				ret->smalldata = (int)json_real_value( data );
 				//printf( "%f", json_real_value( data ));
 				break;
 
